@@ -2,6 +2,8 @@
 <img width="1899" height="1079" alt="image" src="https://github.com/user-attachments/assets/f7eb776b-a93f-4474-aeb3-f6071b2df46f" />
 Transaction Link: https://explorer.aptoslabs.com/txn/0x6f743ebba77a3f9287f06c2b2861cbeeab7c0b6acb9ebef0ce566531aedacdb8?network=devnet
 
+---
+
 **NFT-Based Academic Record Verification**
 
 Credlytic is a decentralized certificate issuance and verification platform built on the Aptos blockchain. The system enables educational institutions to mint tamper-proof NFT certificates and allows students to verify and retrieve their credentials on-chain.
