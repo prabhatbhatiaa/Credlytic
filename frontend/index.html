@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Records Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Credlytic</h1>
+
+        <div id="walletSection" class="section">
+            <h2>Wallet Connection</h2>
+            <div id="connectButtons">
+                <p class="placeholder">Checking for available wallets...</p>
+            </div>
+            <div id="walletInfo" style="display: none;">
+                <p>Connected: <strong id="connectedAddress"></strong> (<span id="connectedWalletName"></span>)</p>
+                <button id="disconnectBtn" class="btn-disconnect" type="button">Disconnect</button>
+            </div>
+        </div>
+
+        <div id="adminSection" class="section" style="display: none;">
+            <h2>University Portal (Admin)</h2>
+            <p>Issue a new academic record.</p>
+            <div class="form-group">
+                <label for="studentName">Student Name:</label>
+                <input type="text" id="studentName" placeholder="e.g., Rohan Kumar" required>
+            </div>
+            <div class="form-group">
+                <label for="courseName">Certificate/Degree:</label>
+                <input type="text" id="courseName" placeholder="e.g., B.Tech Cyber Security" required>
+            </div>
+            <div class="form-group">
+                <label for="studentId">Student's Wallet Address (Identifier):</label>
+                <input type="text" id="studentId" 
+                       placeholder="e.g., 0x..." 
+                       required
+                       pattern="0x[0-9a-fA-F]{64,66}" 
+                       title="Must be a 64 or 66-character Aptos address starting with 0x">
+            </div>
+            <button id="mintBtn" class="btn-mint" type="button">Issue Certificate (Mint NFT)</button>
+        </div>
+
+        <div id="studentSection" class="section" style="display: none;">
+            <h2>Student Portal</h2>
+            <p>Your Identifier (Address): <strong id="studentIdentifier" class="break-all">N/A</strong></p>
+            <button id="findCertsBtn" class="btn-find" type="button">Find My Certificates</button>
+            <div id="studentResults" class="result-box" style="margin-top: 15px;">
+                <p class="placeholder">Click the button above to search for your records.</p>
+            </div>
+        </div>
+
+        <div id="resultArea" class="result-box">
+            <p class="placeholder">Please connect your wallet to begin.</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@aptos-connect/wallet-adapter-plugin@latest/dist/umd/index.min.js"></script>
+    <script src="app.js" defer></script> 
+</body>
+</html>
