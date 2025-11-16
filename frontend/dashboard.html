@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin Dashboard — Credlytic</title>
+
+  <link rel="stylesheet" href="/style.css"/>
+
+  <style>
+    :root { --panel-gap:22px; --card-radius:14px; }
+
+    main.centered { padding: 26px 0; }
+    .admin-grid { 
+        display:grid; 
+        grid-template-columns: 1fr 420px; 
+        gap: var(--panel-gap); 
+        align-items:start; 
+    }
+
+    @media (max-width:980px) {
+      .admin-grid { grid-template-columns:1fr; }
+    }
+
+    .panel{
+      background: var(--card-bg);
+      border-radius:var(--radius);
+      border:1px solid var(--card-border);
+      padding:22px;
+      box-shadow:var(--card-shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .issue-meta{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:14px;
+    }
+
+    .wallet{ 
+      color:var(--text-soft); 
+      font-size:13px; 
+      word-break:break-all; 
+    }
+
+    /* FIXED SCROLL: only cards scroll, not the whole panel */
+    .list-panel{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      overflow:hidden;
+      max-height:72vh;
+      padding-right:20px;
+    }
+
+    /* Cards container scrolls independently */
+    #cardsContainer {
+      overflow-y: auto;
+      max-height: 63vh;
+      padding-right: 6px;
+    }
+
+    .search-input { 
+      width:100%;
+      padding:8px 10px; 
+      border-radius:10px; 
+      border:1px solid var(--cta-border); 
+      background:var(--cta-bg); 
+      color:var(--text); 
+      box-sizing: border-box;
+    }
+
+    .small-ghost{
+      padding:8px 10px; 
+      border-radius:10px; 
+      background:transparent; 
+      color:var(--text); 
+      border:1px dashed rgba(0,0,0,0.06); 
+      cursor:pointer; 
+      font-size:13px; 
+    }
+
+    .cert-card{
+      display:flex; 
+      gap:12px; 
+      align-items:flex-start; 
+      padding:12px; 
+      border-radius:12px; 
+      border:1px solid var(--cta-border); 
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); 
+      box-shadow:0 6px 18px rgba(0,0,0,0.04), var(--cta-shadow-hover); 
+      margin-bottom:12px;
+    }
+
+    .cert-thumb{
+      min-width:100px; 
+      max-width:110px; 
+      border-radius:8px; 
+      overflow:hidden; 
+      border:1px solid rgba(0,0,0,0.06); 
+      background:#071212; 
+      display:flex; 
+      align-items:center; 
+      justify-content:center; 
+    }
+
+    .cert-thumb img{ width:100%; height:auto; display:block; }
+
+    .cert-body{
+      flex:1; 
+      display:flex; 
+      flex-direction:column; 
+      gap:6px; 
+    }
+
+    .title{ font-weight:700; color:var(--heading); }
+    .meta{ font-size:13px; color:var(--text-soft); word-break:break-word; }
+
+    .cert-actions{
+      display:flex; 
+      gap:8px; 
+      margin-top:6px; 
+      flex-wrap:wrap; 
+    }
+
+    .btn{
+      padding:8px 12px; 
+      border-radius:10px; 
+      border:none; 
+      cursor:pointer; 
+      font-weight:600; 
+      font-size:13px; 
+      background:var(--accent-btn); 
+      color:var(--accent-btn-text); 
+    }
+
+    .btn.ghost{
+      background:transparent; 
+      color:var(--text-soft); 
+      border:1px solid var(--cta-border); 
+    }
+
+    .btn.small{ padding:6px 8px; font-size:12px; border-radius:8px; }
+
+    .empty-list{
+      padding:12px; 
+      border-radius:12px; 
+      background:var(--cta-bg); 
+      border:1px solid var(--cta-border); 
+      color:var(--text-soft); 
+      text-align:center; 
+    }
+
+    /* FIXED PREVIEW MODAL */
+    .modal-overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      z-index:9999;
+      backdrop-filter:blur(3px);
+    }
+
+    .modal-overlay.active{ display:flex; }
+
+    .modal-box{
+      background:var(--card-bg);
+      border:1px solid var(--card-border);
+      border-radius:16px;
+      width:90%;
+      max-width:650px;
+      overflow:hidden;
+      box-shadow:var(--card-shadow);
+      animation:pop 0.2s ease-out;
+    }
+
+    #previewInner iframe{
+      width:100%;
+      height:75vh;
+      border:none;
+      border-bottom:1px solid var(--card-border);
+    }
+
+    @keyframes pop{
+      0%{ transform:scale(0.95); opacity:0; }
+      100%{ transform:scale(1); opacity:1; }
+    }
+
+    /* keep the theme switch visible but don't let list scroll affect it */
+    .theme-switch { position: fixed; right: 24px; top: 18px; z-index: 1000; }
+  </style>
+</head>
+
+<body>
+  <div class="theme-switch" onclick="toggleTheme()"><div class="switch-thumb"></div></div>
+
+  <main class="centered" id="mainWrap">
+    <section class="card" style="max-width:1100px; margin:auto;">
+
+      <h2 class="card-title">Admin Portal</h2>
+      <p class="hint">Admin verification required to issue & manage certificates.</p>
+
+      <div style="height:18px;"></div>
+
+      <div class="admin-grid">
+
+        <!-- LEFT PANEL -->
+        <div class="panel issue-panel">
+          <h3 style="margin-top:0;">Admin Dashboard</h3>
+
+          <div class="issue-meta">
+            <div>
+              <div style="font-weight:600;">Admin Wallet</div>
+              <div id="admin-wallet-display" class="wallet">—</div>
+            </div>
+            <div><button id="logoutBtnTop" class="btn ghost" style="background:#e74c3c;color:white;">Logout</button></div>
+          </div>
+
+          <label class="input-label">Student Name</label>
+          <input id="student_name" class="input-field form-row" placeholder="Full Name"/>
+
+          <label class="input-label">Student Email</label>
+          <input id="student_email" class="input-field form-row" placeholder="student@example.com"/>
+
+          <label class="input-label">Course / Program</label>
+          <input id="course_name" class="input-field form-row" placeholder="Course title"/>
+
+          <button id="issueBtn" class="cta-btn" style="margin-top:12px;">Issue Certificate</button>
+
+          <div id="responseBox"></div>
+
+          <hr style="margin:18px 0; border-color: var(--cta-border);">
+
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button id="clearLocal" class="btn ghost small">Clear Local</button>
+            <button id="exportLocal" class="btn small">Export JSON</button>
+            <button id="importLocalBtn" class="btn ghost small">Import JSON</button>
+            <input id="importFile" type="file" accept=".json" style="display:none;">
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="panel list-panel">
+
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-weight:700;color:var(--heading);">Issued Certificates</div>
+            <div id="countBadge" style="font-size:13px;color:var(--text-soft);">0</div>
+          </div>
+
+          <input id="searchBox" class="search-input" placeholder="Search by student, email or tx..."/>
+          <div style="margin-top:8px; display:flex; gap:8px;">
+            <button id="refreshList" class="small-ghost">Refresh</button>
+          </div>
+
+          <div id="cardsContainer">
+            <div class="empty-list">No certificates issued yet.</div>
+          </div>
+
+        </div>
+      </div>
+
+      <a href="/" class="back-link" style="margin-top:18px;">← Back to Home</a>
+
+    </section>
+  </main>
+
+  <!-- PREVIEW MODAL -->
+  <div id="previewModal" class="modal-overlay" tabindex="-1">
+    <div class="modal-box" role="dialog" aria-modal="true">
+      <div id="previewInner"></div>
+    </div>
+  </div>
+
+<script>
+/* THEME */
+if (!localStorage.getItem("theme")) localStorage.setItem("theme","light");
+if (localStorage.getItem("theme")==="light") document.documentElement.classList.add("light");
+function toggleTheme(){
+  document.documentElement.classList.toggle("light");
+  localStorage.setItem("theme", document.documentElement.classList.contains("light") ? "light" : "dark");
+}
+
+/* SESSION PROTECTION */
+const adminEmail = localStorage.getItem("credlytic_admin");
+const adminWallet = localStorage.getItem("credlytic_wallet");
+
+// if not logged-in (via your admin.html login flow), redirect back to admin login
+if (!adminEmail) {
+  window.location.href = "/admin";
+} 
+
+document.getElementById("admin-wallet-display").textContent = adminWallet || "—";
+
+/* LOCAL STORAGE */
+const STORAGE_PREFIX = "credlytic_admin_entries_";
+
+function storageKey(){ return STORAGE_PREFIX + (adminEmail || "").toLowerCase(); }
+function loadLocalEntries(){ 
+  try { return JSON.parse(localStorage.getItem(storageKey()) || "[]"); }
+  catch(e){ console.error("parse loadLocalEntries", e); return []; }
+}
+function saveLocalEntries(arr){ localStorage.setItem(storageKey(), JSON.stringify(arr)); }
+
+/* RENDER LIST */
+const cardsContainer = document.getElementById("cardsContainer");
+const countBadge = document.getElementById("countBadge");
+
+function renderList(filter=""){
+  const entries = loadLocalEntries().slice().reverse();
+  const f = (filter||"").trim().toLowerCase();
+
+  const filtered = entries.filter(e => {
+    // defensive - fields may be missing
+    const s = (e.student||"").toLowerCase();
+    const em = (e.email||"").toLowerCase();
+    const tx = (e.tx_hash||"").toLowerCase();
+    if (!f) return true;
+    return s.includes(f) || em.includes(f) || tx.includes(f);
+  });
+
+  countBadge.textContent = filtered.length;
+
+  if (filtered.length === 0){
+    cardsContainer.innerHTML = `<div class="empty-list">No certificates issued yet.</div>`;
+    return;
+  }
+
+  cardsContainer.innerHTML = "";
+
+  filtered.forEach(e => {
+    const png = `/generated/${(e.file || "").replace(/\.pdf$/i, ".png")}`;
+    const explorer = e.explorer_url || "#";
+    const issuedAt = e.issued_at ? new Date(e.issued_at).toLocaleString() : "—";
+    const safeTx = e.tx_hash || "";
+
+    const card = document.createElement("div");
+    card.className = "cert-card";
+    card.innerHTML = `
+      <div class="cert-thumb">
+        <img src="${png}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'120\\' height=\\'80\\'><rect fill=\\'#001814\\' width=\\'100%\\' height=\\'100%\\'/><text x=\\'50%\\' y=\\'50%\\' font-size=\\'14\\' fill=\\'#00ff99\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\'>CERT</text></svg>'">
+      </div>
+
+      <div class="cert-body">
+        <div class="title">${escapeHtml(e.student || "—")}</div>
+        <div class="meta">${escapeHtml(e.email || "—")} · ${escapeHtml(e.course || "—")}</div>
+        <div class="meta">Issued: ${escapeHtml(issuedAt)}</div>
+        <div class="meta" style="word-break:break-all;">${escapeHtml(safeTx)}</div>
+
+        <div class="cert-actions">
+          <button class="btn small" data-file="${escapeAttr(e.file || "")}">Preview</button>
+          <button class="btn ghost small" data-file-download="${escapeAttr(e.file || "")}">Download</button>
+          <button class="btn ghost small" data-explorer="${escapeAttr(explorer)}">Explorer</button>
+          <button class="btn ghost small" data-copy="${encodeURIComponent(safeTx)}">Copy TX</button>
+        </div>
+      </div>
+    `;
+    // event delegation for inner buttons
+    const actions = card.querySelector(".cert-actions");
+    actions.addEventListener("click", (ev) => {
+      const t = ev.target;
+      if (t.matches("button[data-file]")) {
+        const f = t.getAttribute("data-file");
+        if (f) openPreview(`/generated/${f}`);
+      } else if (t.matches("button[data-file-download]")) {
+        const f = t.getAttribute("data-file-download");
+        if (f) window.open(`/generated/${f}`, "_blank");
+      } else if (t.matches("button[data-explorer]")) {
+        const url = t.getAttribute("data-explorer");
+        if (url && url !== "#") window.open(url, "_blank");
+      } else if (t.matches("button[data-copy]")) {
+        const enc = t.getAttribute("data-copy");
+        copyTx(enc);
+      }
+    });
+
+    cardsContainer.appendChild(card);
+  });
+}
+
+/* PREVIEW MODAL */
+const previewModal = document.getElementById("previewModal");
+function openPreview(path){
+  // show PDF in iframe; if the server returns 404 you'll see browser's message inside iframe.
+  document.getElementById("previewInner").innerHTML = `
+    <iframe src="${path}"></iframe>
+    <div style="padding:14px; text-align:center;">
+      <button class="btn" id="closePreviewBtn">Close</button>
+    </div>
+  `;
+  previewModal.classList.add("active");
+  // attach close button
+  document.getElementById("closePreviewBtn").addEventListener("click", closePreview);
+  // trap focus to modal (basic)
+  previewModal.focus();
+}
+function closePreview(){
+  previewModal.classList.remove("active");
+  // remove iframe to stop any playing content
+  document.getElementById("previewInner").innerHTML = "";
+}
+
+/* close modal on overlay click or Esc */
+previewModal.addEventListener("click", (ev) => {
+  if (ev.target === previewModal) closePreview();
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape" && previewModal.classList.contains("active")) closePreview();
+});
+
+/* COPY TX */
+async function copyTx(enc){
+  try{
+    await navigator.clipboard.writeText(decodeURIComponent(enc));
+    alert("Copied TX");
+  }catch(e){
+    console.error(e);
+    alert("Copy failed");
+  }
+}
+
+/* SEARCH & REFRESH */
+document.getElementById("searchBox").addEventListener("input", e => renderList(e.target.value || ""));
+document.getElementById("refreshList").addEventListener("click", () => renderList(document.getElementById("searchBox").value || ""));
+
+/* CLEAR / EXPORT / IMPORT */
+document.getElementById("clearLocal").addEventListener("click", ()=>{
+  if (!confirm("Clear local list?")) return;
+  localStorage.removeItem(storageKey());
+  renderList();
+});
+
+document.getElementById("exportLocal").addEventListener("click", ()=>{
+  const data = JSON.stringify(loadLocalEntries(), null, 2);
+  const blob = new Blob([data], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `credlytic_entries_${(adminEmail||"admin").replace(/[@.]/g,"_")}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("importLocalBtn").addEventListener("click", () => {
+  document.getElementById("importFile").click();
+});
+
+document.getElementById("importFile").addEventListener("change", ev=>{
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const arr = JSON.parse(reader.result);
+      if (!Array.isArray(arr)) throw new Error("Invalid JSON format");
+      const merged = loadLocalEntries().concat(arr);
+      saveLocalEntries(merged);
+      renderList();
+      alert("Imported successfully");
+    } catch(e){
+      alert("Import failed: " + e.message);
+    }
+  };
+  reader.readAsText(file);
+});
+
+/* LOGOUT */
+document.getElementById("logoutBtnTop").addEventListener("click", ()=>{
+  localStorage.removeItem("credlytic_admin");
+  localStorage.removeItem("credlytic_wallet");
+  window.location.href = "/admin";
+});
+
+/* ISSUE CERTIFICATE - WORKING (calls backend /api/admin/issue) */
+document.getElementById("issueBtn").addEventListener("click", async () => {
+  const name = (document.getElementById("student_name").value || "").trim();
+  const email = (document.getElementById("student_email").value || "").trim();
+  const course = (document.getElementById("course_name").value || "").trim();
+  const box = document.getElementById("responseBox");
+
+  box.innerHTML = ""; // clear previous
+
+  if (!name || !email || !course) {
+    box.innerHTML = `<p class="error">Please fill all fields</p>`;
+    return;
+  }
+
+  // build payload including session admin info
+  const payload = {
+    admin_email: adminEmail,
+    admin_wallet: adminWallet,
+    student_name: name,
+    student_email: email,
+    course_name: course
+  };
+
+  box.innerHTML = "Processing…";
+
+  try{
+    const res = await fetch("/api/admin/issue", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      box.innerHTML = `<p class="error">${escapeHtml(data.error || "Server error")}</p>`;
+      return;
+    }
+    const e = data.entry;
+    box.innerHTML = `<div class="success-box"><strong>Certificate Issued Successfully</strong><br>${escapeHtml(e.student)} (${escapeHtml(e.email)})<br><strong>Course:</strong> ${escapeHtml(e.course)}<br><a href="${e.explorer_url}" target="_blank">View on Explorer</a><br><a href="/generated/${e.file}" target="_blank">${escapeHtml(e.file)}</a></div>`;
+
+    // persist locally and re-render
+    const arr = loadLocalEntries();
+    arr.push(e);
+    saveLocalEntries(arr);
+    renderList(document.getElementById("searchBox").value || "");
+    // clear form partially
+    document.getElementById("student_name").value = "";
+    document.getElementById("student_email").value = "";
+    document.getElementById("course_name").value = "";
+  }catch(err){
+    console.error("issue error", err);
+    box.innerHTML = `<p class="error">Request failed</p>`;
+  }
+});
+
+/* INITIAL RENDER */
+renderList();
+
+/* Helper: simple HTML escape to avoid accidental markup insertion */
+function escapeHtml(s){
+  if (s === null || s === undefined) return "";
+  return String(s).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function escapeAttr(s){ return escapeHtml(s).replace(/"/g,'&quot;'); }
+
+</script>
+
+</body>
+</html>

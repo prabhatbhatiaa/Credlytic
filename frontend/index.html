@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Credlytic — Digital Certificates</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+
+<body>
+
+<!-- THEME SWITCH -->
+<div class="theme-switch" onclick="toggleTheme()">
+  <div class="switch-thumb"></div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT SECTION -->
+  <div class="brand-block">
+    <h1 class="brand-title">Credlytic</h1>
+    <p class="brand-tag">
+      Web3 Based Certificate Issuance System
+    </p>
+  </div>
+
+  <!-- RIGHT SECTION -->
+  <section class="portal-card">
+    <h2 class="portal-title">Choose your portal</h2>
+
+    <div class="cta-row">
+
+      <a class="cta" href="/student">
+        <div class="cta-icon">🎓</div>
+        <div>
+          <div class="cta-head">Login as Student</div>
+          <div class="cta-sub">Google sign-in (no wallet required)</div>
+        </div>
+      </a>
+
+      <a class="cta" href="/admin">
+        <div class="cta-icon">🔐</div>
+        <div>
+          <div class="cta-head">Login as Admin</div>
+          <div class="cta-sub">Connect Petra wallet to mint certificates</div>
+        </div>
+      </a>
+
+      <a class="cta" href="/employer">
+        <div class="cta-icon">🏢</div>
+        <div>
+          <div class="cta-head">Employer Verification</div>
+          <div class="cta-sub">Verify certificates instantly</div>
+        </div>
+      </a>
+
+    </div>
+
+    <br><br>
+    <p class="hint">Admin → Issues certificate → Student receives PDF → Employer verifies on-chain.</p>
+    <p class="foot">Aptos Devnet | Made By Prabhat Bhatia</p>
+
+  </section>
+
+</div>
+<script>
+/* ======================================
+        GLOBAL THEME CONTROLLER
+====================================== */
+
+// Default to light mode if first visit
+if (!localStorage.getItem("theme")) {
+    localStorage.setItem("theme", "light");
+}
+
+// Apply chosen theme
+if (localStorage.getItem("theme") === "light") {
+    document.documentElement.classList.add("light");
+}
+
+// Toggle + Save
+function toggleTheme() {
+    document.documentElement.classList.toggle("light");
+
+    const mode = document.documentElement.classList.contains("light")
+        ? "light"
+        : "dark";
+
+    localStorage.setItem("theme", mode);
+}
+</script>
+
+</body>
+</html>

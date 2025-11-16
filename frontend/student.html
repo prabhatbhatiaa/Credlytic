@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal – Credlytic</title>
+
+    <link rel="stylesheet" href="style.css"/>
+
+    <!-- GOOGLE LOGIN SDK -->
+    <script src="https://accounts.google.com/gsi/client"
+            async defer
+            onload="googleInit()"></script>
+
+    <!-- ZIP LIBRARIES -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+      .profile-card {
+        margin-top: 20px;
+        padding: 20px;
+        border-radius: 16px;
+        background: var(--cta-bg);
+        border: 1px solid var(--cta-border);
+        box-shadow: var(--cta-shadow-hover);
+        text-align: center;
+      }
+
+      .profile-pic {
+        width: 88px;
+        height: 88px;
+        object-fit: cover;
+        border-radius: 16px;
+        border: 2px solid var(--cta-border-hover);
+        box-shadow: var(--cta-shadow-hover);
+        margin-bottom: 12px;
+      }
+
+      /* PDF Preview Modal (Rule B) */
+      .modal-box {
+        width: 90%;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow: hidden;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        box-shadow: var(--cta-shadow-hover);
+        border-radius: 16px;
+        padding: 0;
+        animation: zoomIn 0.25s ease;
+      }
+
+      .modal-box iframe {
+        width: 100%;
+        height: 80vh;
+        border: none;
+        border-radius: 16px 16px 0 0;
+      }
+
+      .modal-close {
+        display: block;
+        padding: 12px;
+        margin: 0;
+        text-align: center;
+        background: var(--accent-btn);
+        color: var(--accent-btn-text);
+        font-weight: 600;
+        cursor: pointer;
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
+      }
+    </style>
+
+</head>
+
+<body>
+
+<!-- Premium Theme Switch -->
+<div class="theme-switch" onclick="toggleTheme()">
+  <div class="switch-thumb"></div>
+</div>
+
+<!-- PDF PREVIEW MODAL -->
+<div id="previewModal" class="modal-overlay">
+  <div class="modal-box" id="previewBox"></div>
+</div>
+
+<div class="layout">
+  <section class="portal-card" style="max-width:650px; margin:auto;">
+
+    <h2 class="portal-title">Student Portal</h2>
+    <p class="hint">Sign in with Google to access your verified blockchain certificates.</p><br>
+
+    <!-- GOOGLE LOGIN -->
+    <div id="google-login-section" style="max-width:300px; margin:0 auto; text-align:center;">
+        <div id="googleSignInBtn"></div>
+    </div>
+
+    <!-- PROFILE SECTION -->
+    <div id="profile-card" class="profile-card" style="display:none;">
+        <img id="profile-img" class="profile-pic" src="">
+        <h3 id="profile-name"></h3>
+        <p id="profile-email" style="margin-bottom:10px;"></p>
+
+        <p><strong>Total Certificates:</strong> <span id="cert-count">0</span></p>
+        <p><strong>Latest Course:</strong> <span id="latest-course">–</span></p>
+
+        <button id="download-all" class="cta-btn">Download All Certificates (ZIP)</button>
+        <button id="signout-btn" class="cta-btn" style="background:#e74c3c;">
+           Sign Out
+        </button>
+    </div>
+
+    <!-- CERTIFICATES GRID -->
+    <div id="certificates-list" class="cert-grid"></div>
+
+    <a href="/" class="back-link">← Back to Home</a>
+
+  </section>
+</div>
+
+
+<script>
+    let userEmail = "";
+    let userName = "";
+    let userPhoto = "";
+    let certificates = [];
+
+    /* THEME SYSTEM */
+    if (!localStorage.getItem("theme")) {
+        localStorage.setItem("theme", "light");
+    }
+    if (localStorage.getItem("theme") === "light") {
+        document.documentElement.classList.add("light");
+    }
+
+    function toggleTheme() {
+      document.documentElement.classList.toggle("light");
+      localStorage.setItem(
+        "theme",
+        document.documentElement.classList.contains("light") ? "light" : "dark"
+      );
+    }
+
+    /* GOOGLE INIT */
+    function googleInit() {
+        google.accounts.id.initialize({
+            client_id: "339166867902-0f6orls3paqt9u6v517so31epcv0109b.apps.googleusercontent.com",
+            callback: handleCredentialResponse,
+            auto_select: false
+        });
+
+        google.accounts.id.renderButton(
+            document.getElementById("googleSignInBtn"),
+            { theme: "outline", size: "large" }
+        );
+
+        google.accounts.id.prompt();
+    }
+
+    /* LOGIN HANDLER */
+    async function handleCredentialResponse(response) {
+        try {
+            const decoded = JSON.parse(atob(response.credential.split('.')[1]));
+
+            userEmail = decoded.email;
+            userName = decoded.name;
+            userPhoto = decoded.picture;
+
+            document.getElementById("google-login-section").style.display = "none";
+
+            document.getElementById("profile-img").src = userPhoto;
+            document.getElementById("profile-name").textContent = userName;
+            document.getElementById("profile-email").textContent = userEmail;
+
+            document.getElementById("profile-card").style.display = "block";
+
+            await loadCertificates();
+
+        } catch (e) {
+            console.error("Login decode error:", e);
+        }
+    }
+
+    /* LOAD CERTIFICATES */
+    async function loadCertificates() {
+        const res = await fetch(`/api/student/certificates?email=${encodeURIComponent(userEmail)}`);
+        const data = await res.json();
+
+        certificates = data.certificates || [];
+
+        document.getElementById("cert-count").textContent = certificates.length;
+        document.getElementById("latest-course").textContent =
+          certificates.length ? certificates[certificates.length - 1].course : "–";
+
+        const list = document.getElementById("certificates-list");
+        list.innerHTML = "";
+
+        if (!data.ok || certificates.length === 0) {
+            list.innerHTML = "<p class='hint'>No certificates found.</p>";
+            return;
+        }
+
+        certificates.forEach(cert => {
+            const div = document.createElement("div");
+            div.className = "cert-card";
+
+            const filePath = `/generated/${cert.file}`;
+
+            div.innerHTML = `
+                <strong>${cert.course}</strong>
+                <small class="cert-time">${new Date(cert.issued_at).toLocaleString()}</small>
+
+                <div class="cert-action-row">
+                  <button class="view-btn" onclick="openPreview('${filePath}')">
+                    View
+                  </button>
+
+                  <button class="share-icon-btn" onclick="shareCertificate('${filePath}')">
+                    🔗
+                  </button>
+                </div>
+            `;
+
+            list.appendChild(div);
+        });
+    }
+
+    /* SHARE LINK */
+    function shareCertificate(path) {
+        const link = window.location.origin + path;
+        navigator.clipboard.writeText(link);
+        alert("Certificate link copied to clipboard!");
+    }
+
+    /* PDF PREVIEW (RULE B) */
+    function openPreview(path) {
+        const box = document.getElementById("previewBox");
+
+        box.innerHTML = `
+            <iframe src="${path}"></iframe>
+            <div class="modal-close" onclick="closePreview()">Close</div>
+        `;
+
+        document.getElementById("previewModal").classList.add("active");
+    }
+
+    function closePreview() {
+        document.getElementById("previewModal").classList.remove("active");
+    }
+
+    /* ZIP DOWNLOAD */
+    document.getElementById("download-all").onclick = async () => {
+        if (certificates.length === 0) {
+            alert("No certificates available.");
+            return;
+        }
+
+        const zip = new JSZip();
+        const folder = zip.folder("Credlytic-Certificates");
+
+        for (let cert of certificates) {
+            const url = `/generated/${cert.file}`;
+            const blob = await fetch(url).then(r => r.blob());
+            folder.file(cert.file, blob);
+        }
+
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, "Credlytic_Certificates.zip");
+    };
+
+    /* SIGN OUT */
+    document.getElementById("signout-btn").addEventListener("click", () => {
+        google.accounts.id.disableAutoSelect();
+
+        userEmail = "";
+        userName = "";
+        userPhoto = "";
+        certificates = [];
+
+        document.getElementById("profile-card").style.display = "none";
+        document.getElementById("certificates-list").innerHTML = "";
+        document.getElementById("google-login-section").style.display = "block";
+    });
+</script>
+
+</body>
+</html>

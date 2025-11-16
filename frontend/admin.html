@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin Portal — Credlytic</title>
+
+  <link rel="stylesheet" href="/style.css"/>
+
+  <!-- Google Login -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    /* Scoped visual tweaks keep exact theme from style.css */
+    :root { --card-w: 420px; }
+
+    /* Center small login card on admin page */
+    #loginCard {
+      max-width: var(--card-w);
+      margin: 80px auto;
+      padding: 26px;
+      border-radius: 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--card-shadow);
+      text-align: center;
+      animation: fadeIn 0.28s ease;
+    }
+
+    #loginCard h2 {
+      font-size: 22px;
+      margin-bottom: 6px;
+      color: var(--heading);
+    }
+
+    #loginCard .hint { color: var(--text-soft); margin-bottom:12px; }
+
+    /* Hide google sign-in widget when JS decides already-signed-in */
+    .g_id_signin.hidden { display:none !important; }
+
+    /* Keep the main dashboard (if accidentally visible) hidden here */
+    #dashboardWrapper { display:none; }
+
+    @media (max-width: 900px) {
+      #loginCard { margin: 40px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Theme switch (same as other pages) -->
+  <div class="theme-switch" onclick="toggleTheme()"><div class="switch-thumb"></div></div>
+
+  <!-- LOGIN CARD -->
+  <div id="loginCard" role="dialog" aria-labelledby="loginTitle">
+    <h2 id="loginTitle">Credlytic Admin Login</h2>
+    <p class="hint" id="google-msg">Sign in with Google to continue.</p>
+
+    <!-- Google One-tap / Sign-in (will render button) -->
+    <div id="g_id_onload"
+         data-client_id="339166867902-0f6orls3paqt9u6v517so31epcv0109b.apps.googleusercontent.com"
+         data-callback="handleGoogleCredential"
+         data-auto_prompt="false"></div>
+
+    <div id="googleBtnWrap" style="display:inline-block">
+      <div class="g_id_signin" data-type="standard" data-theme="outline" data-size="large"></div>
+    </div>
+
+    <p style="margin-top:12px; color:var(--text-soft); font-size:13px;">
+      Only approved admin emails can access the dashboard.
+    </p>
+  </div>
+
+  <!-- Minimal fallback dashboard container (never used here) -->
+  <main class="centered" id="dashboardWrapper">
+    <!-- placeholder if someone navigates here by mistake -->
+  </main>
+
+<script>
+/* THEME persistence (same behavior as other pages) */
+if (!localStorage.getItem("theme")) localStorage.setItem("theme","light");
+if (localStorage.getItem("theme")==="light") document.documentElement.classList.add("light");
+function toggleTheme(){ document.documentElement.classList.toggle("light"); localStorage.setItem("theme", document.documentElement.classList.contains("light") ? "light":"dark"); }
+
+/* UTIL: send credential to backend to verify allowed admin */
+async function verifyWithServer(email){
+  try {
+    const r = await fetch("/api/admin/login_check", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ email })
+    });
+    return await r.json();
+  } catch (e) {
+    console.error("verify error", e);
+    return { ok:false, error: "Network error" };
+  }
+}
+
+/* Google credential callback (used by gsi) */
+async function handleGoogleCredential(response) {
+  try {
+    // decode JWT payload
+    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    const email = payload.email;
+    document.getElementById("google-msg").textContent = "✔ Verifying: " + email;
+
+    const data = await verifyWithServer(email);
+
+    if (!data.ok) {
+      document.getElementById("google-msg").innerHTML = "❌ " + (data.error || "Unauthorized");
+      return;
+    }
+
+    if (!data.is_registered) {
+      // Admin not registered yet — ask user to bind wallet in admin flow (or show message)
+      document.getElementById("google-msg").innerHTML = "❌ Not registered as admin.";
+      return;
+    }
+
+    // success -> persist a tiny client-side session and redirect to dashboard
+    // server returned wallet if registered
+    const wallet = data.wallet || "";
+    localStorage.setItem("credlytic_admin", email);
+    if (wallet) localStorage.setItem("credlytic_wallet", wallet);
+
+    // disable auto-select for google
+    if (google?.accounts?.id) google.accounts.id.disableAutoSelect();
+
+    // redirect to dashboard route (must be served by backend)
+    window.location.href = "/admin/dashboard";
+  } catch (err) {
+    console.error("Google callback error", err);
+    document.getElementById("google-msg").textContent = "Sign in failed — check console.";
+  }
+}
+window.handleGoogleCredential = handleGoogleCredential;
+
+/* If user already logged in client-side, skip sign-in UI and go to dashboard */
+(function checkLocal() {
+  const admin = localStorage.getItem("credlytic_admin");
+  if (admin) {
+    // hide google button and redirect to dashboard (ensures one place)
+    document.getElementById("googleBtnWrap").classList.add("hidden");
+    // small delay so user sees "already logged in" message
+    setTimeout(()=> window.location.href = "/admin/dashboard", 250);
+  }
+})();
+
+/* UX: expose GSI when library loads (rendered automatically by gsi script) */
+</script>
+</body>
+</html>

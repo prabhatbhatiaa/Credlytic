@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Employer Verification — Credlytic</title>
+
+  <!-- Global UI Theme -->
+  <link rel="stylesheet" href="style.css"/>
+
+  <style>
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--heading);
+      margin-bottom: 10px;
+      text-shadow: 0 0 10px var(--grid-light);
+    }
+
+    p, label, input, button, .hint, .muted {
+      font-weight: 400 !important;
+    }
+
+    label {
+      margin-top: 16px;
+      display: block;
+      color: var(--text);
+    }
+
+    input {
+      margin-top: 6px !important;
+    }
+
+    /* Styled verification result box */
+    .verify-box {
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 14px;
+      background: var(--cta-bg);
+      border: 1px solid var(--cta-border);
+      box-shadow: var(--cta-shadow-hover);
+      animation: fadeIn 0.25s ease;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .verify-box strong {
+      color: var(--heading);
+      font-weight: 600;
+    }
+
+    .verify-box a {
+      color: var(--accent-btn);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .verify-box a:hover {
+      opacity: 0.8;
+    }
+
+    /* Actions row */
+    .actions {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      width: 100%;
+    }
+
+    /* Full-width View Button */
+    .view-btn {
+      width: 100%;
+      padding: 10px;
+      background: var(--accent-btn);
+      color: var(--accent-btn-text);
+      border-radius: 10px;
+      border: none;
+      font-size: 15px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .view-btn:hover { opacity: 0.85; }
+
+    /* Explorer Link Button */
+    .explorer-btn {
+      padding: 10px 14px;
+      background: var(--accent-btn);
+      color: var(--accent-btn-text);
+      border-radius: 10px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .explorer-btn:hover { opacity: 0.85; }
+
+    /* Modal box overrides */
+    .modal-box {
+      width: 90%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow: hidden;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--cta-shadow-hover);
+      border-radius: 16px;
+      padding: 0;
+    }
+
+    .modal-box iframe {
+      width: 100%;
+      height: 80vh;
+      border: none;
+      border-radius: 16px 16px 0 0;
+    }
+
+    .modal-close {
+      display: block;
+      padding: 12px;
+      text-align: center;
+      background: var(--accent-btn);
+      color: var(--accent-btn-text);
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom-left-radius: 16px;
+      border-bottom-right-radius: 16px;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- Theme Switch -->
+<div class="theme-switch" onclick="toggleTheme()">
+  <div class="switch-thumb"></div>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="modal-overlay">
+  <div class="modal-box" id="previewBox"></div>
+</div>
+
+<main class="centered">
+  <section class="card" style="max-width: 600px; margin:auto;">
+
+    <h1>Employer Verification</h1>
+    <p class="hint">
+      Verify a candidate’s certificate using their email and on-chain transaction hash.
+    </p>
+
+    <!-- Inputs -->
+    <label>Email</label>
+    <input id="email" type="text" class="input-field" placeholder="candidate@example.com"/>
+
+    <label>Transaction Hash</label>
+    <input id="tx" type="text" class="input-field" placeholder="0xabc..."/>
+
+    <button id="verifyBtn" class="cta-btn" style="margin-top:18px;">
+      Verify Certificate
+    </button>
+
+    <p id="status" class="hint" style="margin-top:14px;"></p>
+
+    <div id="resultContainer"></div>
+
+    <a href="/" class="back-link" style="margin-top:20px;">← Back to Home</a>
+
+  </section>
+</main>
+
+<script>
+/* ============================================================
+                     THEME CONTROL
+============================================================ */
+
+if (!localStorage.getItem("theme")) {
+    localStorage.setItem("theme", "light");
+}
+if (localStorage.getItem("theme") === "light") {
+    document.documentElement.classList.add("light");
+}
+
+function toggleTheme() {
+    document.documentElement.classList.toggle("light");
+    const mode = document.documentElement.classList.contains("light")
+      ? "light" : "dark";
+    localStorage.setItem("theme", mode);
+}
+
+/* ============================================================
+                     PREVIEW MODAL
+============================================================ */
+
+function openCertPreview(path) {
+    const box = document.getElementById("previewBox");
+
+    box.innerHTML = `
+      <iframe src="${path}"></iframe>
+      <div class="modal-close" onclick="closeCertPreview()">Close</div>
+    `;
+
+    document.getElementById("previewModal").classList.add("active");
+}
+
+function closeCertPreview() {
+    document.getElementById("previewModal").classList.remove("active");
+}
+
+/* ============================================================
+                     VERIFICATION LOGIC
+============================================================ */
+
+document.getElementById('verifyBtn').addEventListener('click', async () => {
+  const email = document.getElementById('email').value.trim();
+  const tx = document.getElementById('tx').value.trim();
+
+  const status = document.getElementById('status');
+  const output = document.getElementById('resultContainer');
+
+  output.innerHTML = "";
+  status.textContent = "";
+
+  if (!email || !tx) {
+    status.textContent = "Please provide both fields.";
+    return;
+  }
+
+  status.textContent = "Verifying…";
+
+  try {
+    const res = await fetch('/api/employer/verify', {
+      method: 'POST',
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ email, tx_hash: tx })
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      status.textContent = data.error;
+      return;
+    }
+
+    const cert = data.certificate;
+    status.textContent = "✅ Verified — certificate found";
+
+    output.innerHTML = `
+      <div class="verify-box">
+        <div><strong>Student:</strong> ${cert.student}</div>
+        <div><strong>Email:</strong> ${cert.email}</div>
+        <div><strong>Course:</strong> ${cert.course}</div>
+        <div><strong>Issued:</strong> ${new Date(cert.issued_at).toLocaleString()}</div>
+
+        <div style="margin-top:10px; word-break: break-all;">
+          <strong>Transaction Hash:</strong><br>
+          ${cert.tx_hash}
+        </div>
+
+        <div class="actions">
+          <button class="view-btn" onclick="openCertPreview('/generated/${cert.file}')">
+            View Certificate
+          </button>
+
+          <button class="explorer-btn" onclick="window.open('${cert.explorer_url}', '_blank')">
+            Explorer Link
+          </button>
+        </div>
+      </div>
+    `;
+
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Server error.";
+  }
+});
+</script>
+
+</body>
+</html>
