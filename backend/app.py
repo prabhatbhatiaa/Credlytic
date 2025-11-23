@@ -103,7 +103,7 @@ def api_guard(dummy):
 # ==========================================================
 #                 ADMIN GOOGLE AUTH
 # ==========================================================
-ALLOWED_ADMIN_EMAILS = ["credlytic@gmail.com"]
+ALLOWED_ADMIN_EMAILS = ["# ADD ADMIN EMAIL IDS HERE"]
 
 @app.route("/api/admin/login_check", methods=["POST"])
 def login_check():
@@ -302,3 +302,4 @@ def serve_file(filename):
 # ==========================================================
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
+
