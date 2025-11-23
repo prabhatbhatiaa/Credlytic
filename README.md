@@ -90,7 +90,7 @@ credlytic-aarambh/
 
 ```powershell
 # Clone the repository
-git clone https://github.com/yourusername/credlytic-aarambh.git
+git clone https://github.com/PRABHATBHATIAA/credlytic.git
 cd credlytic-aarambh
 
 # Create virtual environment
@@ -134,7 +134,7 @@ Server starts at `http://localhost:5000`
 
 ## 🔐 Admin Setup Flow
 
-1. **Google Sign-In** — Admin logs in with authorized Google account (`credlytic@gmail.com`)
+1. **Google Sign-In** — Admin logs in with authorized Google account
 2. **Wallet Binding** — Connect Petra wallet (one-time, stored in `admin.json`)
 3. **Issue Certificates** — Fill student details, mint NFT, generate PDF, send email
 4. **Dashboard** — View all issued certificates
@@ -270,8 +270,6 @@ This project is open source. Add a `LICENSE` file if you plan to distribute publ
 ## 👤 Author
 
 **Prabhat Bhatia**
-
-Made with ❤️ for Web3 education credentialing
 
 ---
 
