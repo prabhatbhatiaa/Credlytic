@@ -18,10 +18,10 @@ A lightweight, production-ready system for issuing blockchain-verified digital c
 
 ```
 ┌─────────────┐         ┌──────────────┐         ┌─────────────┐
-│   Admin     │────────▶│    Flask     │────────▶│   Aptos     │
+│   Admin     │───────▶│    Flask      │───────▶│   Aptos     │
 │  (Google +  │         │   Backend    │         │   Devnet    │
 │   Petra)    │         │              │         └─────────────┘
-└─────────────┘         └──────────────┘                │
+└─────────────┘         └──────────────┘                 │
                                │                         │
                                │ Mints NFT               │
                                ▼                         │
@@ -40,12 +40,12 @@ A lightweight, production-ready system for issuing blockchain-verified digital c
                                ▼                         │
                         ┌──────────────┐                 │
                         │   Student    │                 │
-                        │  Receives    │                 │
+                        │   Receives   │                 │
                         │   PDF        │                 │
                         └──────────────┘                 │
                                                          │
-┌─────────────┐         ┌──────────────┐                │
-│  Employer   │────────▶│   Verify     │────────────────┘
+┌─────────────┐         ┌──────────────┐                 │
+│  Employer   │───────▶│   Verify     │──────────────────┘
 │             │         │  Endpoint    │  Checks on-chain
 └─────────────┘         └──────────────┘
 ```
