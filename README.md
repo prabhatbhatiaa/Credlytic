@@ -1,4 +1,4 @@
-# Credlytic Aarambh 🎓
+# Credlytic
 
 > Web3-based certificate issuance and verification system on Aptos Devnet
 
