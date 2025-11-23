@@ -90,7 +90,7 @@ credlytic-aarambh/
 
 ```powershell
 # Clone the repository
-git clone https://github.com/PRABHATBHATIAA/credlytic.git
+git clone https://github.com/prabhatbhatiaa/credlytic.git
 cd credlytic-aarambh
 
 # Create virtual environment
