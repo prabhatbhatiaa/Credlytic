@@ -91,7 +91,7 @@ credlytic-aarambh/
 ```powershell
 # Clone the repository
 git clone https://github.com/prabhatbhatiaa/credlytic.git
-cd credlytic-aarambh
+cd credlytic
 
 # Create virtual environment
 python -m venv .venv
@@ -262,10 +262,6 @@ Deploy backend to 2+ free hosts, use Cloudflare Workers as failover proxy.
 - [ ] Multi-language support
 - [ ] Mobile-responsive UI improvements
 - [ ] Mainnet deployment guide
-
-## 📄 License
-
-This project is open source. Add a `LICENSE` file if you plan to distribute publicly.
 
 ## 👤 Author
 
